@@ -12,6 +12,7 @@
 **/.agents/
 **/.claude/
 **/.copilot/
+**/.git-backup/
 **/.cursor/
 **/.continue/
 **/.codeium/
