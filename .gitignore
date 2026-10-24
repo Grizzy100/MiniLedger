@@ -1,0 +1,76 @@
+# Dependencies
+**/node_modules/
+
+# Environment files and local secrets
+**/.env
+**/.env.*
+!**/.env.example
+!.env.example
+
+# AI assistant files and local agent state
+**/.ai/
+**/.agents/
+**/.claude/
+**/.copilot/
+**/.cursor/
+**/.continue/
+**/.codeium/
+**/.gemini/
+**/.junie/
+**/.kiro/
+**/.amazonq/
+**/.tabnine/
+**/.windsurf/
+**/AGENTS.md
+**/CLAUDE.md
+**/GEMINI.md
+**/skills-lock.json
+/.github/copilot-instructions.md
+/.github/agents/
+/.github/instructions/
+/.github/prompts/
+
+# Generated code and build output
+**/generated/
+**/dist/
+**/build/
+**/coverage/
+**/web-build/
+**/.expo/
+**/.expo-shared/
+**/ios/
+**/android/
+
+# Local uploads and runtime data
+**/uploads/
+**/.cache/
+**/.eslintcache
+**/.parcel-cache/
+**/.turbo/
+**/.tmp/
+**/tmp/
+
+# Logs and temporary files
+**/logs/
+**/*.log
+**/*.tmp
+**/*.temp
+**/*.swp
+**/*.swo
+**/*.zip
+
+# Editor and operating-system files
+**/.vscode/
+**/.idea/
+**/.DS_Store
+**/Thumbs.db
+**/desktop.ini
+**/.history/
+
+# Native signing material and certificates
+**/*.jks
+**/*.p8
+**/*.p12
+**/*.key
+**/*.mobileprovision
+**/*.orig.*

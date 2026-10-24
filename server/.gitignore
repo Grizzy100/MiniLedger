@@ -1,0 +1,16 @@
+# Server-specific generated and local files
+node_modules/
+generated/
+dist/
+coverage/
+uploads/
+logs/
+
+# Local environment files (keep .env.example committed)
+.env
+.env.*
+!.env.example
+
+# Test and runtime output
+*.log
+*.tsbuildinfo

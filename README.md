@@ -1,0 +1,388 @@
+# MiniLedger
+
+MiniLedger is a small mobile ledger for tracking money lent to friends. It
+supports phone-number login with a development OTP, loan management, summary
+figures, overdue highlighting, repayment tracking, and optional receipt
+uploads.
+
+## Features
+
+- Phone number login with a mock OTP printed by the backend
+- Secure JWT session storage in the Expo app
+- Add a loan with friend name, amount, due date, and optional note
+- View active and repaid loans
+- Highlight overdue active loans
+- Mark a loan as repaid
+- View total lent, total repaid, outstanding, and overdue amounts
+- Attach JPEG or PNG receipt images up to 5 MB
+- View receipts through an authenticated bottom-sheet viewer
+- Input validation and clear error messages
+- Safe-area support for modern phones
+
+## Technology
+
+### Backend
+
+- Node.js
+- TypeScript
+- Express
+- PostgreSQL
+- Prisma
+- Zod validation
+- JWT authentication
+- Multer in-memory upload handling
+
+### Mobile app
+
+- React Native
+- Expo SDK 58
+- Expo Router
+- TypeScript
+- Expo SecureStore
+- Expo Image Picker
+
+## Project structure
+
+```text
+MiniLedger/
+├── client/       # Expo React Native application
+├── server/       # Express + Prisma API
+├── .gitignore
+└── README.md
+```
+
+## Requirements
+
+- Node.js 22.18 or newer
+- npm
+- PostgreSQL database
+- Expo Go on a physical device, or an Android/iOS emulator
+
+## Backend setup
+
+Open a terminal in the server directory:
+
+```powershell
+cd server
+npm install
+```
+
+Create the environment file:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Update `server/.env` with your PostgreSQL connection and secrets:
+
+```env
+NODE_ENV=development
+PORT=3000
+DATABASE_URL=your_postgres_connection_string
+DIRECT_URL=your_direct_postgres_connection_string
+JWT_SECRET=a_random_string_at_least_32_characters
+JWT_EXPIRES_IN=7d
+OTP_SECRET=another_random_string_at_least_32_characters
+OTP_TTL_SECONDS=300
+OTP_MAX_ATTEMPTS=5
+OTP_RESEND_SECONDS=30
+APP_TIMEZONE=Asia/Kolkata
+CORS_ORIGIN=*
+MAX_RECEIPT_BYTES=5242880
+```
+
+Generate migration files and Prisma client:
+
+```powershell
+npm run prisma:generate
+npm run db:migrate
+```
+
+Start the backend in development mode:
+
+```powershell
+npm run dev
+```
+
+The API listens on port `3000` and binds to `0.0.0.0` so a phone on the same
+Wi-Fi network can reach it.
+
+Check that the server is running:
+
+```text
+http://localhost:3000/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+## Mobile app setup
+
+Open a second terminal in the client directory:
+
+```powershell
+cd client
+npm install
+```
+
+Create the environment file:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Set the API URL in `client/.env.local`.
+
+For Expo Go on a physical phone, use the computer's LAN IPv4 address:
+
+```env
+EXPO_PUBLIC_API_URL=http://10.12.78.15:3000/api
+```
+
+Replace `10.12.78.15` with the current IP address of the development
+computer. The phone and computer must be connected to the same Wi-Fi network.
+
+For a local browser or simulator, `localhost` may be appropriate:
+
+```env
+EXPO_PUBLIC_API_URL=http://localhost:3000/api
+```
+
+Start Expo in LAN mode:
+
+```powershell
+npx expo start --lan --clear
+```
+
+Scan the QR code with Expo Go. Restart Metro after changing `.env.local`
+because Expo reads public environment variables when Metro starts.
+
+## API reference
+
+The API base URL is:
+
+```text
+http://localhost:3000/api
+```
+
+Protected routes require:
+
+```http
+Authorization: Bearer <jwt>
+```
+
+### Health check
+
+```http
+GET /health
+```
+
+### Send OTP
+
+```http
+POST /api/auth/send-otp
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "phone": "+919876543210"
+}
+```
+
+The mock OTP is printed in the server log during development. The development
+response also includes `mockOtp` so the mobile app can show it during local
+testing. Real production OTP delivery is outside this demo's scope.
+
+### Verify OTP
+
+```http
+POST /api/auth/verify-otp
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "phone": "+919876543210",
+  "otp": "123456"
+}
+```
+
+Successful response:
+
+```json
+{
+  "message": "OTP verified successfully",
+  "token": "<jwt>"
+}
+```
+
+Use the returned token for the protected loan endpoints.
+
+### Create a loan without a receipt
+
+```http
+POST /api/loans
+Authorization: Bearer <jwt>
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "friendName": "Aarav",
+  "amountPaise": 250000,
+  "dueDate": "2026-12-30",
+  "note": "Dinner and travel"
+}
+```
+
+`amountPaise` is an integer. For example, `₹2,500.00` is sent as
+`250000`.
+
+### Create a loan with a receipt
+
+```http
+POST /api/loans
+Authorization: Bearer <jwt>
+Content-Type: multipart/form-data
+```
+
+Multipart fields:
+
+- `friendName` — required text
+- `amountPaise` — required integer text
+- `dueDate` — required `YYYY-MM-DD` text
+- `note` — optional text
+- `receipt` — optional JPEG or PNG file
+
+Receipt rules:
+
+- Maximum size: 5 MB
+- JPEG and PNG only
+- File signatures are checked on the server
+- Stored filenames are generated by the server
+- Files are stored outside publicly served directories
+
+### List loans
+
+```http
+GET /api/loans?page=1
+Authorization: Bearer <jwt>
+```
+
+The response contains loan data and pagination information. Each loan includes
+`hasReceipt` and an authenticated `receiptUrl` when applicable.
+
+### Get summary
+
+```http
+GET /api/loans/summary
+Authorization: Bearer <jwt>
+```
+
+The summary includes:
+
+- `totalLentPaise`
+- `totalRepaidPaise`
+- `outstandingPaise`
+- `overduePaise`
+- `activeLoans`
+- `repaidLoans`
+
+### Mark a loan as repaid
+
+```http
+PATCH /api/loans/:id/repay
+Authorization: Bearer <jwt>
+```
+
+Replace `:id` with the loan UUID.
+
+### Retrieve a receipt
+
+```http
+GET /api/loans/:id/receipt
+Authorization: Bearer <jwt>
+```
+
+The requesting user must own the loan. Missing receipts and receipts belonging
+to another user return `404`.
+
+## Manual usage flow
+
+1. Start PostgreSQL and the backend.
+2. Start Expo in LAN mode.
+3. Open the app in Expo Go.
+4. Enter a ten-digit phone number.
+5. Read the mock OTP in the backend terminal or development toast.
+6. Verify the OTP.
+7. Add a loan entry.
+8. Confirm the summary card and loan list update.
+9. Attach a receipt if needed and submit the entry.
+10. Tap `View receipt` to open the authenticated bottom sheet.
+11. Mark an active loan as repaid and confirm it moves to the Repaid tab.
+
+The following flow has been manually confirmed:
+
+- Login
+- Add loan
+- View summary
+- Mark repaid
+- Upload and view receipt
+
+## Validation
+
+TypeScript checks:
+
+```powershell
+# From client/
+npm run typecheck
+
+# From server/
+npm run typecheck
+```
+
+Automated tests are intentionally not included in this version.
+
+## Troubleshooting
+
+### Expo Go cannot connect to the backend
+
+- Confirm the backend is running with `npm run dev`.
+- Confirm the phone and computer use the same Wi-Fi.
+- Use the computer LAN IP, not `localhost`, in `client/.env.local`.
+- Open `http://<computer-ip>:3000/health` in the phone browser.
+- Restart Expo after changing `.env.local`:
+
+```powershell
+npx expo start --lan --clear
+```
+
+- If the health URL cannot be opened from the phone, check Windows Firewall
+  permissions for Node.js or TCP port `3000` on the Private network.
+
+### Receipt upload fails
+
+- Confirm the selected file is JPEG or PNG.
+- Confirm it is no larger than 5 MB.
+- Confirm the backend is running and the user is logged in.
+- Check the backend terminal for the request or validation error.
+
+## Security notes
+
+- Never commit `.env` files or database credentials.
+- Keep `.env.example` files as templates only.
+- Receipt files are not publicly served.
+- Receipt access requires authentication and loan ownership.
+- Use strong, unique JWT and OTP secrets outside local development.
